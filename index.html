@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>イフ・オア・ダイ 〜運命の条件分岐デスゲーム〜</title>
+  <meta name="description" content="高校情報Ⅰの「順次構造」と「条件分岐」を学べるシュールなクイズサバイバルゲーム。共通テスト用DNCL・Python対応。">
+  <link rel="stylesheet" href="style.css?v=3">
+  <!-- Matter.js 物理演算ライブラリ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+</head>
+<body>
+
+  <!-- BGMコントロールボタン -->
+  <button id="bgm-toggle-btn" class="bgm-btn" onclick="toggleBgm()">🎵 BGM: ON</button>
+
+  <!-- 演出レイヤー -->
+  <div id="flash-overlay"></div>
+  <div id="physics-canvas"></div>
+
+  <!-- オーディオ要素（魔王魂BGM） -->
+  <audio id="audio-title" src="./title_bgm.mp3" loop preload="auto"></audio>
+  <audio id="audio-game" src="./game_bgm.mp3" loop preload="auto"></audio>
+
+  <!-- =========================================
+       1. タイトル画面
+       ========================================= -->
+  <div class="screen active" id="screen-title">
+    <div class="title-badge">高校情報Ⅰ プログラミングテスト第2弾</div>
+    <h1 class="main-title">IF or DIE</h1>
+    <div class="sub-title">〜 運命の条件分岐デスゲーム 〜</div>
+
+    <div class="title-visual-container">
+      <div class="visual-card">
+        <img src="./char_player.jpg" alt="びっくりペンギン">
+      </div>
+      <div class="visual-vs">VS</div>
+      <div class="visual-card boss">
+        <img src="./char_avocado.jpg" alt="アボカド卿">
+      </div>
+    </div>
+
+    <div class="story-box">
+      <div class="story-alert">⚠️ <strong>緊急警告</strong> ⚠️</div>
+      <p>気がつくとそこは、謎のサングラス野菜「アボカド卿」が牛耳る<strong>条件分岐コロシアム</strong>だった。</p>
+      <p>「諸君、デスゲームへようこそ。君たちにはプログラムの穴埋めを解いてもらう。<br>
+      <strong>もし（if）正解ならば扉が開いて生き残る…さもなくば（else）…巨大なウインナーが降ってくる！！</strong>」</p>
+      <p>上から順に処理される「順次構造」と、運命を分ける「条件分岐」の知恵で生還せよ！</p>
+    </div>
+
+    <button class="start-btn" id="btn-start" onclick="goToDifficulty()">▶ デスゲームを開始する</button>
+
+    <!-- 魔王魂クレジット表記（絶対厳守） -->
+    <div class="bgm-credit">BGM：魔王魂</div>
+  </div>
+
+  <!-- =========================================
+       2. 難易度選択画面
+       ========================================= -->
+  <div class="screen" id="screen-difficulty">
+    <div class="section-title">⚔️ 難易度を選択せよ</div>
+
+    <div class="diff-grid">
+      <!-- BEGINNER -->
+      <div class="diff-card beginner" onclick="startGame('beginner')">
+        <div class="diff-icon">🟢</div>
+        <div class="diff-name">BEGINNER</div>
+        <div class="diff-desc">
+          代入・四則演算・商と余り・基本if<br>
+          8問 / 制限時間なし<br>
+          HP: ♥♥♥♥♥<br>
+          <strong style="color:var(--neon-green);">💡 無料ヒントあり</strong>
+        </div>
+      </div>
+
+      <!-- INTERMEDIATE -->
+      <div class="diff-card intermediate" onclick="startGame('intermediate')">
+        <div class="diff-icon">🟡</div>
+        <div class="diff-name">INTERMEDIATE</div>
+        <div class="diff-desc">
+          if-else・比較演算子・偶奇判定・割引<br>
+          10問 / 1問45秒<br>
+          HP: ♥♥♥♥<br>
+          <span style="color:var(--neon-gold);">💡 ヒント (HP-1)</span>
+        </div>
+      </div>
+
+      <!-- ADVANCED -->
+      <div class="diff-card advanced" onclick="startGame('advanced')">
+        <div class="diff-icon">🔴</div>
+        <div class="diff-name">ADVANCED</div>
+        <div class="diff-desc">
+          elif多分岐・and/or/not・残金3分岐<br>
+          12問 / 1問30秒<br>
+          HP: ♥♥♥<br>
+          <span style="color:var(--neon-red);">💡 ヒント (HP-1)</span>
+        </div>
+      </div>
+
+      <!-- SURVIVAL -->
+      <div class="diff-card survival" onclick="startGame('survival')">
+        <div class="diff-icon">💀</div>
+        <div class="diff-name">SURVIVAL</div>
+        <div class="diff-desc">
+          全問題から無限ランダム出題！<br>
+          タイマーが徐々に短縮（最凶）<br>
+          HP: ♥♥♥<br>
+          <span style="color:var(--neon-purple);">スコアの限界に挑め</span>
+        </div>
+      </div>
+    </div>
+
+    <button class="back-btn" onclick="goToTitle()">← タイトルに戻る</button>
+  </div>
+
+  <!-- =========================================
+       3. ゲームバトル画面
+       ========================================= -->
+  <div class="screen" id="screen-game">
+    <!-- HUD -->
+    <div class="game-hud">
+      <div class="hud-box">
+        <span class="hud-label">HP</span>
+        <span class="hp-hearts" id="hud-hp">♥♥♥♥♥</span>
+      </div>
+      <div class="hud-box">
+        <span class="hud-label">SCORE</span>
+        <span class="score-val" id="hud-score">0</span>
+      </div>
+      <div class="hud-box">
+        <span class="combo-badge" id="hud-combo" style="display:none;">0 COMBO!</span>
+      </div>
+    </div>
+
+    <!-- タイマーバー -->
+    <div class="timer-container">
+      <div class="timer-bar" id="timer-bar"></div>
+    </div>
+
+    <!-- バトルアリーナ（キャラクター対峙） -->
+    <div class="battle-arena">
+      <div class="combatant">
+        <div class="combatant-avatar" id="avatar-player">
+          <img src="./char_player.jpg" alt="ペンギン">
+        </div>
+        <div class="combatant-name">ペンギン</div>
+      </div>
+
+      <div class="dialogue-balloon" id="dialogue-box">
+        「さあ、条件式を選べ…！」
+      </div>
+
+      <div class="combatant boss">
+        <div class="combatant-avatar" id="avatar-boss">
+          <img src="./char_avocado.jpg" alt="アボカド卿">
+        </div>
+        <div class="combatant-name">アボカド卿</div>
+      </div>
+    </div>
+
+    <!-- 問題カード -->
+    <div class="question-card">
+      <div class="q-header">
+        <span class="q-badge" id="q-category">順次構造</span>
+        <span class="q-progress" id="q-progress">Q 1 / 8</span>
+      </div>
+      <div class="q-text" id="q-text">問題文がここに表示されます。</div>
+      <div class="code-box" id="q-code"># コードがここに表示されます</div>
+
+      <!-- 4択ボタン -->
+      <div class="options-grid" id="options-grid">
+        <button class="option-btn" onclick="selectOption(0)">
+          <span class="opt-index">1</span>
+          <span class="opt-text">選択肢1</span>
+        </button>
+        <button class="option-btn" onclick="selectOption(1)">
+          <span class="opt-index">2</span>
+          <span class="opt-text">選択肢2</span>
+        </button>
+        <button class="option-btn" onclick="selectOption(2)">
+          <span class="opt-index">3</span>
+          <span class="opt-text">選択肢3</span>
+        </button>
+        <button class="option-btn" onclick="selectOption(3)">
+          <span class="opt-index">4</span>
+          <span class="opt-text">選択肢4</span>
+        </button>
+      </div>
+
+      <!-- ヒント領域 -->
+      <div class="game-bottom-bar">
+        <button class="hint-btn" id="btn-hint" onclick="useHint()">💡 ヒントを見る</button>
+      </div>
+      <div class="hint-popup" id="hint-popup"></div>
+    </div>
+  </div>
+
+  <!-- =========================================
+       4. リザルト画面
+       ========================================= -->
+  <div class="screen" id="screen-result">
+    <div class="result-badge clear" id="res-badge">DESK GAME SURVIVED!</div>
+    <div class="rank-display rank-S" id="res-rank">S</div>
+    <div class="title-awarded" id="res-title">称号：条件分岐の神</div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="label">最終スコア</div>
+        <div class="val" id="res-score">12,500</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">正解率</div>
+        <div class="val" id="res-accuracy">100%</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">最大コンボ</div>
+        <div class="val" id="res-combo">8</div>
+      </div>
+    </div>
+
+    <!-- Google Classroom あいことばコンテナ -->
+    <div class="keyword-container">
+      <div class="keyword-lead">Google Classroomの解答に以下の「あいことば」を入力してください。</div>
+      <div class="keyword-badge-wrap">
+        <div class="keyword-val" id="keyword-text">あまりはパーセント</div>
+        <button class="copy-btn" onclick="copyKeyword()">📋 コピー</button>
+      </div>
+    </div>
+
+    <!-- アクションボタン -->
+    <div class="result-actions">
+      <button class="action-btn retry" onclick="retryGame()">🔄 もう一度挑戦</button>
+      <button class="action-btn review" id="btn-review" onclick="openReview()">📖 解説・復習</button>
+      <button class="action-btn home" onclick="goToTitle()">🏠 タイトルへ戻る</button>
+    </div>
+  </div>
+
+  <!-- 復習モーダル -->
+  <div class="review-modal" id="review-modal">
+    <div class="review-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 style="color:var(--neon-gold);">📖 出題問題の解説一覧</h3>
+        <button class="back-btn" onclick="closeReview()">✕ 閉じる</button>
+      </div>
+      <div id="review-list"></div>
+    </div>
+  </div>
+
+  <!-- スクリプトの読み込み -->
+  <script src="questions.js?v=1"></script>
+  <script src="main.js?v=1"></script>
+</body>
+</html>
