@@ -227,8 +227,8 @@ const QUESTIONS_DATA = [
     id: 14,
     category: "分岐構造",
     difficulties: ["intermediate", "advanced", "survival"],
-    title: "テスト点数の多分岐",
-    question: "テスト点数 score について、「60点未満なら追試」「100点なら満点」「それ以外（60点以上100点未満）なら合格」と表示する空欄 【 ア 】 に入る比較演算子を選べ。",
+    title: "演習点数の多分岐",
+    question: "演習点数 score について、「60点未満なら追試」「100点なら満点」「それ以外（60点以上100点未満）なら合格」と表示する空欄 【 ア 】 に入る比較演算子を選べ。",
     code: `if score 【 ア 】 60:\n  print("追試です")\nelif score == 100:\n  print("満点です")\nelse:\n  print("合格です")`,
     options: [
       ">",
